@@ -1,1 +1,7 @@
 # particle.ignore
+payload.json
+LICENSE
+README.md
+.DS-Store
+./1 - Circuit Diagrams
+./2 - Pseudo Code
