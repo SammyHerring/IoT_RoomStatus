@@ -9,6 +9,7 @@ PRODUCT_VERSION(1);
 bool DEBUG_MODE = false;
 
 /* ========================= CONSTANTS ========================= */
+/* SEE A LISTING OF ALL VARIABLES ON PAGE 39 */
 
 /* DEFINE VARIABLES */
 String formattedTime;
@@ -74,25 +75,28 @@ int periodEndMin[5][6] = {
    {0, 55, 5, 0, 35, 30}     /*  initializers for row indexed by 5 | FRIDAY */
 };
 
+//Arrays only declared, where the values are calculated by the algorithm.
 int periodStart[5][6];
 int periodEnd[5][6];
 
 /* ======================= SYSTEM SETUP ======================== */
 
 STARTUP(
-  WiFi.selectAntenna(ANT_AUTO);
-  System.enableUpdates();
+  WiFi.selectAntenna(ANT_AUTO); //Allows the device to choose the antenna with the best signal.
+  System.enableUpdates(); //Allows the device to download OTA updates at boot.
   );
-SYSTEM_MODE(MANUAL);
-SYSTEM_THREAD(ENABLED);
+SYSTEM_MODE(MANUAL); //Forces the system to wait for cloud processing until allowed by algorithm.
+SYSTEM_THREAD(ENABLED); //Allows a secondary thread to be used for the cloud processing.
 
 /* ================ SETUP CODE (RUNS ONCE) ==================== */
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(115200); //Open Serial Transmission Port at BAUD Rate of 115200
 
-  pinMode(pir, INPUT);
+  pinMode(pir, INPUT); //Set pinMode of D2 (pir) to INPUT
 
+  //If DEBUG_MODE 'true' then enable on-board Status LED else disable on-board Status LED.
+  //See Logic tables on page 41 for more information.
   if (!DEBUG_MODE) {
     RGB.control(true);
     RGB.color(0, 0, 0);
@@ -100,27 +104,29 @@ void setup() {
     RGB.control(false);
   }
 
-  WiFi.connect(WIFI_CONNECT_SKIP_LISTEN);
+  WiFi.connect(WIFI_CONNECT_SKIP_LISTEN); //Connect to Wi-Fi network, regardless of network signal.
   int DBG = 0;
   while (!WiFi.ready()) {
+    //Print Wi-Fi not connected yet once to serial if Wi-Fi not ready
     if (DBG == 0) {Serial.println("Wi-Fi Antenna Not Ready."); DBG = 1;}
     } while (WiFi.ready()) {
     Serial.println("Wi-Fi Antenna Ready.");
     Serial.println("W-Fi Connecting.");
     Particle.connect();
-    while (!Particle.connected()) {
-    } while (Particle.connected()) {
-        Serial.println("W-Fi Connected.");
-        Particle.syncTime();
-        setPeriodTimes();
-        delay(2000);
-        updateTime();
-        Serial.println(formattedTime);
-        Serial.println(formattedDay);
-        Serial.println(period);
-        notify("boot", "IoT Sensor now online.");
-        Serial.println("Setup Complete.");
-    break;
+    //Continue once connected to Particle Cloud
+    while (Particle.connected()) {
+      Serial.println("W-Fi Connected."); //Print connected to Wi-Fi on serial
+      Particle.syncTime(); //Sync RTC to Particle Cloud time value
+      setPeriodTimes(); //Call setPeriodTimes function
+      delay(2000);
+      updateTime(); //Call updateTime function
+      //Print time values on serial
+      Serial.println(formattedTime);
+      Serial.println(formattedDay);
+      Serial.println(period);
+      notify("boot", "IoT Sensor now online."); //Call notify function with boot data
+      Serial.println("Setup Complete."); //Print Setup complete on serial
+      break;
     }
     break;
   }
@@ -129,24 +135,28 @@ void setup() {
 /* ================ MAIN CODE (RUN REPEATEDLY) ================= */
 
 void loop() {
-  updateTime();
-  if (Particle.connected()) {Particle.process();};
+  updateTime(); //Call updateTime function
+  if (Particle.connected()) {Particle.process();}; //Process particle data if connected
+  //Continue if connected to Particle Cloud
   while (Particle.connected()) {
     delay(2000);
-    updateTime();
-    checkMode();
-    updateMotion();
+    updateTime(); //Call updateTime function
+    checkMode(); //Call checkMode function
+    updateMotion(); //Call updateMotion function
 
+    //Print time values on serial
     Serial.println(formattedTime);
     Serial.println(formattedDay);
     Serial.println(period);
 
     delay(5000);
-    updateTime();
+    updateTime(); //Call updateTime function
     delay(5000);
 
-    notifyGoodMorning();
+    notifyGoodMorning(); //Call notifyGoodMorning function
 
+    //Checks reservation status and sends appropriate notification.
+    //See Logic tables on page 41 for more information.
     if (reservation[day-1][period] == 0) {
       if (pirState == HIGH) {
         notify("vacant", "G16 is currently not booked, but movement has been detected.");
@@ -156,7 +166,7 @@ void loop() {
     } else if (reservation[day-1][period] == 1) {
       notify("reserved", "G16 is currently reserved.");
     }
-    Particle.process();
+    Particle.process(); //Process Particle Cloud communication data
     break;
   }
 }
@@ -165,6 +175,8 @@ void loop() {
 
 /* NOTIFYER FUNCTIONS */
 
+//Sends daily schedule notification 15 minutes before period one.
+//See Logic tables on page 41 for more information.
 void notifyGoodMorning() {
   int minSinceMidnight = (Time.local() % 86400) / 60;
   if ( (periodStart[day-1][0]-15) == minSinceMidnight && !morningNotified ) {
@@ -199,6 +211,8 @@ void notifyGoodMorning() {
   }
 }
 
+//Send general notifications to the correct Slack Webhook using the Particle Cloud with JSON DATA.
+//See Logic tables on page 41 for more information.
 void notify(char type[], char data[]) {
 
   if ( type == "boot" ) {
@@ -225,15 +239,18 @@ void notify(char type[], char data[]) {
 
 /* TIME UPDATE FUNCTIONS */
 
+//Update all time variables
 void updateTime() {
-  formattedDay = Time.format(Time.now(), "%A");
-  formattedTime = Time.format(Time.now(), "%I:%M%p");
-  day = Time.weekday();
-  weekdayAlignment();
-  period = updatePeriod();
+  formattedDay = Time.format(Time.now(), "%A"); //See variables listing on page 39.
+  formattedTime = Time.format(Time.now(), "%I:%M%p"); //See variables listing on page 39.
+  day = Time.weekday(); //See variables listing on page 39.
+  weekdayAlignment(); //Call weekdayAlignment function
+  period = updatePeriod(); //See variables listing on page 39.
   return;
 }
 
+//Realign the day variable to be inline with the reservation and period time Arrays.
+//See Logic tables on page 42 for more information.
 void weekdayAlignment() {
   if (day == 1) {
     day = 7;
@@ -255,6 +272,8 @@ void weekdayAlignment() {
 
 /* PERIOD CONTROL FUNCTIONS */
 
+//Return the current period value by using the periodStart and periodEnd arrays.
+//See Logic tables on page 42 for more information.
 int updatePeriod() {
 
     int minSinceMidnight = (Time.local() % 86400) / 60;
@@ -276,6 +295,8 @@ int updatePeriod() {
     }
 }
 
+//Set time values (minutes) for the periodStart and periodEnd arrays.
+//See Logic tables on page 42 for more information.
 void setPeriodTimes() {
   for (int x=0; x<5; x++) {
     for (int y=0; y<6; y++) {
@@ -300,6 +321,9 @@ void setPeriodTimes() {
 
 /* OFFLINE MODE DURING NON-WEEKDAYS */
 
+//Check the current period value to see if it is an out of hours operation code and act appropriately.
+//In these cases the out of hours operation code leads to calling the offlineMode function.
+//See Logic tables on page 42 for more information.
 void checkMode() {
   if (period == 7) { //Not weekday
     offlineMode(7, "Not a Weekday");
@@ -314,38 +338,46 @@ void checkMode() {
   return;
 }
 
+//Place the system in a sleep mode until the system is due to come into operation.
 void offlineMode(int periodMode, char reason[]) {
+  //Print the offline mode and reasoning on serial
   Serial.print("--Offline Mode - ");
   Serial.print(periodMode);
   Serial.println("--");
   Serial.println(reason);
   delay(1500);
+  //While the period is an out of hours operation code
   while (period == periodMode) {
-    Particle.process();
-    period = updatePeriod();
-    System.sleep(300);
+    Particle.process(); //Process Particle Cloud communication data
+    period = updatePeriod(); //Update the period variable value
+    System.sleep(300); //Enter sleep mode for 300 seconds, where the system is in a low power state.
   }
   return;
 }
 
 /* PIR SESNOR FUNCTIONS */
 
+//Read and push the PIR values to the notify function
 void updateMotion() {
-    if (calibrated()) {
-      readPIR();
-      reportPIR();
+    if (calibrated()) { //Prior to processing the PIR data, ensure the sensor has had time to calibrate.
+      readPIR(); //Call the readPIR function
+      reportPIR(); //Call the reportPIR function
     }
   return;
 }
 
+//Calculate whether an appropriate calibration period has elapsed based on system run time.
 bool calibrated() {
-  return millis() - calibrateTime > 0;
+  return millis() - calibrateTime > 0; //If the appropriate time has elapsed, give a 'true' boolean value.
 }
 
+//Set the PIR movement value
 void readPIR() {
-  movementVal = digitalRead(pir);
+  movementVal = digitalRead(pir); //Set the movementVal variable based on the digital value of the 'pir' pin.
 }
 
+//Report the PIR movement state based on the movementVal variable.
+//See Logic tables on page 42 for more information.
 void reportPIR() {
   if (movementVal == HIGH) {
     if (pirState == LOW) {
