@@ -1,0 +1,368 @@
+//SYSTEM PREPARATION
+//IMPORT LIBRARIES
+IMPORT APPLICATION.H
+
+//DEFINE PARTICLE CLOUD OTA INFORMATION AND DEBUGGING UTILITY DATA
+DEFINE PRODUCT ID as 2636
+DEFINE PRODUCT VERSION as 1
+DEFINE Bool DEBUG_Mode to FALSE
+
+//DEFINING OF CONSTANTS, VARIABLES AND ARRAYS
+DECLARE String formattedTime
+DECLARE Int  day
+DECLARE String formattedDay
+DEFINE Int period to 0
+DECLARE Int previousPeriod
+DEFINE Int momentVal to 0
+DEFINE Int calibrateTime to "10000"
+DEFINE Int pirState to LOW
+DEFINE Bool periodNotified to false
+DEFINE Bool morningNotified to false
+DEFINE Bool periodStateChange to false
+
+DEFINE String notifyString1 to "Period "
+DEFINE String notifyString2 to null
+DEFINE String notifyString3 to ": "
+DEFINE String notifyString4 to null
+DECLARE String notifyData
+
+DEFINE Int pir to D2
+
+DEFINE Array Int reservation[5][6] {
+  {1, 1, 0, 1, 1, 1} ,
+  {1, 0, 1, 1, 0, 1} ,
+  {1, 1, 0, 1, 1, 0} ,
+  {1, 0, 1, 0, 1, 1} ,
+  {0, 1, 1, 1, 1, 1}
+}
+
+DEFINE Array Int periodStartHr[5][6] {
+  {9, 10, 11, 12, 13, 14} ,
+  {9, 10, 11, 12, 13, 14} ,
+  {8, 9, 10, 11, 13, 14} ,
+  {9, 10, 11, 12, 13, 14} ,
+  {9, 10, 11, 12, 13, 14}
+}
+
+DEFINE Array Int periodStartMin[5][6] {
+  {5, 0, 10, 5, 40, 35} ,
+  {5, 0, 10, 5, 40, 35} ,
+  {50, 45, 55, 50, 20, 35} ,
+  {5, 0, 10, 5, 40, 35} ,
+  {5, 0, 10, 5, 40, 35}
+}
+
+DEFINE Array Int periodEndHr[5][6] {
+  {10, 10, 12, 13, 14, 15} ,
+  {10, 10, 12, 13, 14, 15} ,
+  {9, 10, 11, 12, 14, 15} ,
+  {10, 10, 12, 13, 14, 15} ,
+  {10, 10, 12, 13, 14, 15}
+}
+
+DEFINE Array Int periodEndMin[5][6] {
+  {0, 55, 5, 0, 35, 30} ,
+  {0, 55, 5, 0, 35, 30} ,
+  {45, 40, 50, 45, 15, 30} ,
+  {0, 55, 5, 0, 35, 30} ,
+  {0, 55, 5, 0, 35, 30}
+}
+
+DECLARE Array Int periodStart[5][6]
+DECLARE Array Int periodEnd[5][6]
+
+//SYSTEM SETUP
+//This code should be run at start up, which is managed by a predefined function apart of Particle's application library.
+//The Photon has an antenna or UFL connector, therefore this option chooses the antenna with the best signal.
+SELECT WiFi Antenna (AUTOMATIC)
+//This option will automatically download the OTA updates from the Particle Cloud.
+SELECT System Updates (AUTOMATIC)
+//This option requires any particle cloud data to be processed when defined in the main loop by my algorithm.
+SELECT System Mode (MANUAL)
+//This option means the Particle processor quickly switches between processing the user code and the cloud data.
+SELECT System Thread (ENABLED)
+
+//LOOP SETUP
+function setup()
+  OPEN Serial Bus with BAUD Rate '115200'
+
+  SET pinMode for pir to INPUT
+
+  IF DEBUG_MODE FALSE THEN
+    SET RGB.control to true //Predetermined functions as a part of the Particle library to override the Particle status LED
+    SET RGB.color to 0,0,0
+  else
+    SET RGB.control to false
+
+  WiFi.connect() //Predetermined function as a part of the Particle library to connect to the WiFi network
+
+  DEFINE Int DBG to 0
+  While WiFi.ready() false THEN
+    IF DBG == 0 THEN
+      Serial Print "Wi-Fi Antenna Not Ready."
+      SET DBG = 1
+    END IF
+  END While
+  While WiFi.ready() true THEN
+    Serial Print "Wi-Fi Antenna Ready."
+    Serial Print "Wi-Fi Connecting."
+    Particle.connect() //Predetermined function as a part of the Particle library to connect to the Particle Cloud
+      While Particle.connected() true THEN
+        Serial Print "Wi-Fi Connected."
+        Particle.syncTime() //Predetermined function as a part of the particle library to sync the onboard RTC
+        setPeriodTime() //Calls function to set the values for the periodStart[x][y] and periodEnd[x][y] arrays.
+        delay 2000 milliseconds
+        updateTime() //Calls function to set the formattedDay, formatted Time, day and period variables.
+        //Print the formattedTime, formattedDay and period variable values on the serial TX pin for debugging
+        Serial Print formattedTime
+        Serial Print formattedDay
+        Serial Print period
+        //Calls notify function with vacant parameter to push JSON data of "IoT Sensor now online" to the Slack API.
+        notify("boot", "IoT Sensor now online.")
+        Serial Print "Setup Complete."
+      END While
+  END While
+END function
+
+//MAIN loop
+//A Particle Photon is constantly running the main loop script in sequence after the setup function is complete.
+function loop()
+  updateTime() //Calls function to set the formattedDay, formatted Time, day and period variables.
+  IF Particle.connected() true THEN
+    Particle.process() //Predetermined function as a part of the Particle library to process any outstanding cloud data.
+  END IF
+  while Particle.connected() true THEN
+    delay 2000 milliseconds
+    updateTime() //Calls function to set the formattedDay, formatted Time, day and period variables.
+    //Calls function to check if the period is not a standardised period during the day and if so enter offline mode.
+    checkMode()
+    updateMotion() //Calls function to check for any movement being read from the PIR Sensor
+
+    //Print the formattedTime, formattedDay and period variable values on the serial TX pin for debugging
+    Serial Print formattedTime
+    Serial Print formattedDay
+    Serial Print period
+
+    delay 5000 milliseconds
+    updateTime() //Calls function to set the formattedDay, formatted Time, day and period variables.
+    delay 5000 milliseconds
+
+    notifyGoodMorning() //Calls function to check if it is appropriate to notify users with the day's reservation schedule.
+
+    IF reservation[day-1][period] == 0 THEN
+      IF pirState == HIGH THEN
+        //Calls notify function with vacant parameter to push JSON data with message seen below to the Slack API.
+        notify("vacant", "G16 is currently not booked, but movement has been detected.")
+      ELSE THEN
+      //Calls notify function with vacant parameter to push JSON data with message seen below to the Slack API.
+        notify("vacant", "G16 is currently vacant.")
+      END IF
+    ELSE IF reservation[day-1][period] == 1 THEN
+    //Calls notify function with reserved parameter to push JSON data with message seen below to the Slack API.
+      notify("reserved", "G16 is currently reserved.")
+    END IF
+    Particle.process() //Predetermined function as a part of the Particle library to process any outstanding cloud data.
+  END While
+END function
+
+//Notification Module
+//Push Daily Schedule Function
+function notifyGoodMorning()
+  //Set the variable minSinceMidnight to a calculated value of the minutes since midnight using the Particle function Time.local()
+  SET Int minSinceMidnight to '(Time.local() % 86400) / 60'
+  IF (periodStart[day-1][0]-15) == minSinceMidnight && !morningNotified THEN
+    //Push JSON Data to the Particle Cloud to trigger a webhook on the Slack API, opening a title for the daily schedule.
+    Particle.publish("IoTRoomSensor-GoodMorningIntro-G16", notifyData, PRIVATE)
+    delay 3000 milliseconds
+    For Int i = 0; i<6; i++ THEN
+      SET notifyString2 to i+1
+      IF reservation[day-1][i] == 1 THEN
+        notifyString4 = "Booked"
+        notifyData = notifyString1+notifyString2+notifyString3+notifyString4
+        Serial Print "Period Notified - Red"
+        Serial Print i
+        //Push JSON Data to the Particle Cloud to trigger a webhook on the Slack API, with the period (i) data for the daily schedule.
+        Particle.publish("IoTRoomSensor-GoodMorningBooked-G16", notifyData, PRIVATE)
+      ELSE IF reservation[day-1][i] == 0 THEN
+        notifyString4 = "Available"
+        notifyData = notifyString1+notifyString2+notifyString3+notifyString4
+        Serial Print "Period Notified - Green"
+        Serial Print i
+        //Push JSON Data to the Particle Cloud to trigger a webhook on the Slack API, with the period (i) data for the daily schedule.
+        Particle.publish("IoTRoomSensor-GoodMorningAvailable-G16", notifyData, PRIVATE)
+      ELSE THEN
+        Serial Print "Error on: ", i
+      END IF
+      delay 3000 milliseconds
+    END For
+  END IF
+  //Push JSON Data to the Particle Cloud to trigger a webhook on the Slack API, with a footer / timestamp on the daily schedule.
+  Particle.publish("IoTRoomSensor-GoodMorningTS-G16", notifyData, PRIVATE)
+  SET morningNotified to true
+  delay 5000 milliseconds
+  ELSE IF periodEnd[day-1][5] == minSinceMidnight THEN
+    SET morningNotified to false //Resets the morning notification status at the end of working hours in preparation for next day.
+  END IF
+END function
+
+//General Notification Push Function
+function notify(char type[], char data[])
+  IF type == "boot" THEN
+    //Push JSON Data to the Particle Cloud to trigger a webhook on the Slack API, with a boot notification.
+    Particle.publish("IoTRoomSensor-Boot-G16", data, PRIVATE)
+  END IF
+
+  IF periodNotified false OR periodStateChange true THEN
+    IF type == "reserved" THEN
+      Serial Print "Notification: Reserved"
+      Serial Print periodNotified
+      Serial Print periodStateChange
+      //Push JSON Data to the Particle Cloud to trigger a webhook on the Slack API, with a reservation status notification.
+      Particle.publish("IoTRoomSensor-StateRed-G16", data, PRIVATE)
+      SET periodNotified to true
+    ELSE IF type == "vacant" THEN
+      Serial Print "Notification: Vacant"
+      Serial Print periodNotified
+      Serial Print periodStateChange
+      //Push JSON Data to the Particle Cloud to trigger a webhook on the Slack API, with a reservation status notification.
+      Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE)
+      SET periodNotified to true
+    END IF
+  END IF
+END function
+
+//Time Module to set all time variables
+//Update Time Variables Function
+function updateTime()
+  //Set the time variables based upon the Time.format() Particle function from the Application.h Library
+  //The Time.format() function manipulates the Time.now() functions value to a format as defined in the second parameter.
+  SET formattedDay to Time.format(Time.now(), "%A")
+  SET formattedTime to Time.format(Time.now(), "%I:%M%p")
+  SET day to Time.weekday() //Sets the day variable with a numeric value for the weekday based on the Particle Library.
+  //Resets the day variable to align it with the reservation arrays, specifically 1 - Monday and 7 - Sunday
+  weekdayAlignment()
+  SET period to updatePeriod() //Set the period variable based upon the return of the updatePeriod() function.
+END function
+
+//Align Weekday variable to be inline with the reservation arrays
+function weekdayAlignment()
+  IF day == 1 THEN
+    SET day to 7
+  ELSE IF day == 2 THEN
+    SET day to 1
+  ELSE IF day == 3 THEN
+    SET day to 2
+  ELSE IF day == 4 THEN
+    SET day to 3
+  ELSE IF day == 5 THEN
+    SET day to 4
+  ELSE IF day == 6 THEN
+    SET day to 5
+  ELSE IF day == 7 THEN
+    SET day to 6
+  END IF
+END function
+
+//Update Period Function
+function updatePeriod()
+  //Set the variable minSinceMidnight to a calculated value of the minutes since midnight using the Particle function Time.local()
+  SET Int minSinceMidnight to '(Time.local() % 86400) / 60'
+  For Int i = 0; i<6; i++ THEN
+    IF day == 6 OR day == 7 THEN
+      //This period value is returned as a code for the checkMode() function to handle out of hours operation.
+      return 7 //This code is indicative of it not being a weekday, therefore the system enters offline mode.
+    ELSE IF minSinceMidnight < (periodStart[day-1][0]+30) THEN
+      //This period value is returned as a code for the checkMode() function to handle out of hours operation.
+      return 8 //This code is indicative that there is not a lesson for at least 30 minutes, therefore the system enters offlineMode.
+    ELSE IF minSinceMidnight > (periodEnd[day-1][5]+30)  THEN
+      //This period value is returned as a code for the checkMode() function to handle out of hours operation.
+      return 9 //This code is indicative that there is not a lesson for at least 30 minutes, therefore the system enters offlineMode.
+    ELSE IF (periodStart[day-1][i] <= minSinceMidnight && minSinceMidnight < periodEnd[day][i) THEN
+      IF period != 0 AND period != i THEN
+        SET periodNotified to false
+      ELSE THEN
+        SET periodNotified to true
+      END IF
+      return i //Returns the current period during the standard timetables hours when the system is operational.
+    END IF
+  END For
+END function
+
+//Set the periodStart[x][y] and periodEnd[x][y] array values based upon the hour start and end value arrays
+function setPeriodTimes()
+  For Int x = 0; i<5; i++ THEN
+    For Int y = 0; i<6; i++ THEN
+      SET timeConvertStart to (periodStartHr[x][y] * 60) + periodStartMin[x][y] //convert the start hour and minutes to minutes since midnight
+      SET timeConvertEnd to (periodEndHr[x][y] * 60) + periodEndMin[x][y] //convert the start hour and minutes to minutes since midnight
+      SET periodStart[x][y] to timeConvertStart //then using the calculated for the value in the periodStart time array
+      SET periodEnd[x][y] to timeConvertEnd //then using the calculated for the value in the periodEnd time array
+
+      IF DEBUG_MODE true THEN
+        Serial Print "Day: ", x+1
+        Serial Print " | Period: ", y+1
+        Serial Print " | Start Time: ", periodStart[x][y]
+        Serial Print " | End Time: ", periodEnd[x][y]
+      END IF
+    END For
+  END For
+END function
+
+//Offline Mode Module
+//Check if the period is a given value that indicates the system is not during standard operating hours.
+function checkMode()
+  IF period == 7 THEN
+    offlineMode(7, "Not a weekday") //Call the offline mode function as it is not during normal operational hours
+    System.reset() //If no longer in offlineMode reset the system
+  ELSE IF period == 8 THEN
+    offlineMode(8, "Period 1 > 30 Minutes Away") //Call the offline mode function as it is not during normal operational hours
+    System.reset() //If no longer in offlineMode reset the system
+  ELSE IF period == 9 THEN
+    offlineMode(9, "Period 6 > 30 Minutes Ago") //Call the offline mode function as it is not during normal operational hours
+    System.reset() //If no longer in offlineMode reset the system
+  END IF
+END function
+
+//Offline Mode function which handles the event of the system in offline Mode
+function offlineMode(periodMode, reason)
+  Serial Print "--Offline Mode - ", periodMode, "--"
+  Serial Print reason
+  delay 1500 milliseconds
+  WHIILE period == periodMode THEN
+    Particle.process() //Predetermined function as a part of the Particle library to process any outstanding cloud data.
+    SET period to updatePeriod() //Set the period variable based upon the return of the updatePeriod() function.
+    System.sleep(300) //Particle function that disables system processing for 300 seconds before resuming the system.
+  END WHILE
+END function
+
+//Motion Detection Module
+//Check for motion and report the status
+function updateMotion()
+  IF calibrated() true THEN //If the calibration time has elapsed proceed
+    readPIR() //Call the readPIR() function to detect whether there has been any movement
+    reportPIR() //Call the reportPIR() function to give a boolean value regarding movement and whether there has been any previously
+  END IF
+END function
+
+//Produce boolean value based on a numeric value regarding whether a calibration period has elapsed
+function calibrated()
+  return millis() - calibrateTime > 0 //Calculate whether the calibration has elapsed since the system timer (millis()) started
+END function
+
+//Produce a boolean value as to whether any movement is currently being Detected
+function readPIR()
+  SET movementVal to digitalRead(pir) //Read the value from the OUT of the PIR sensor, either HIGH (movement) or LOW (no movement)
+END function
+
+//Update the pirState variable as to whether there has been any movement
+function reportPIR()
+  IF movementVal == HIGH THEN
+    IF pirState == LOW THEN //If the current state is LOW and movement is detected set it to HIGH
+      Serial Print "Movement Detected."
+      SET pirState to HIGH
+    END IF
+  ELSE
+    IF pirState == HIGH THEN //If there is no longer any movement and the value for movement is still HIGH, reset the value to LOW
+      SET pirState to LOW
+    END IF
+  END IF
+END function
