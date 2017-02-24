@@ -1,0 +1,92 @@
+/* ==================== GENERAL NOTIFICATIONS ==================== */
+/* Boot Notification */
+{
+  "attachments": [
+    {
+      "fallback": "Boot update notification.",
+      "color": "#439FE0",
+      "title": "Boot Status",
+      "text": "{{PARTICLE_EVENT_VALUE}}"
+    }
+  ]
+}
+
+/* Reservation Notification */
+{
+  "attachments": [
+    {
+      "fallback": "Status update notification.",
+      "color": "danger",
+      "text": "{{PARTICLE_EVENT_VALUE}}"
+    }
+  ]
+}
+
+/* Available Notification */
+{
+  "attachments": [
+    {
+      "fallback": "Status update notification.",
+      "color": "good",
+      "text": "{{PARTICLE_EVENT_VALUE}}"
+    }
+  ]
+}
+
+/* ================= DAILY SCHEDULE NOTIFICATION ================= */
+/* Introductory Statement Notification */
+{
+  "attachments": [
+    {
+      "fallback": "Today's Room Reservations",
+      "title": "G16 Room Reservations",
+      "pretext": "Good Morning!",
+      "mrkdwn_in": [
+        "text",
+        "pretext"
+      ]
+    }
+  ]
+}
+
+/* Scheduled - Room Reservation Notification */
+{
+  "attachments": [
+    {
+      "fallback": "Period Reservation Status",
+      "color": "danger",
+      "text": "{{PARTICLE_EVENT_VALUE}}",
+      "mrkdwn_in": [
+        "text",
+        "pretext"
+      ]
+    }
+  ]
+}
+
+/* Scheduled - Room Vacancy Notification */
+{
+  "attachments": [
+    {
+      "fallback": "Period Reservation Status",
+      "color": "good",
+      "text": "{{PARTICLE_EVENT_VALUE}}",
+      "mrkdwn_in": [
+        "text",
+        "pretext"
+      ]
+    }
+  ]
+}
+
+/* Footer Notification */
+{
+  "attachments": [
+    {
+      "fallback": "Room Reservation Timestamp",
+      "footer": "IoT Sensor API",
+      "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png",
+      "ts": "{{PARTICLE_EVENT_VALUE}}"
+    }
+  ]
+}
