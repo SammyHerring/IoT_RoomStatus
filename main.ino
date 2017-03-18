@@ -173,7 +173,7 @@ void loop() {
 
 /* ======================== ALL FUNCTIONS ====================== */
 
-/* NOTIFYER FUNCTIONS */
+/* NOTIFICATION MODULE */
 
 //Sends daily schedule notification 15 minutes before period one.
 //See Logic tables on page 41 for more information.
@@ -237,7 +237,7 @@ void notify(char type[], char data[]) {
   return;
 }
 
-/* TIME UPDATE FUNCTIONS */
+/* TIME MODULE */
 
 //Update all time variables
 void updateTime() {
@@ -270,8 +270,7 @@ void weekdayAlignment() {
   return;
 }
 
-/* PERIOD CONTROL FUNCTIONS */
-
+/* PERIOD VARIABLE CONTROL (A PART OF TIME MODULE) */
 //Return the current period value by using the periodStart and periodEnd arrays.
 //See Logic tables on page 42 for more information.
 int updatePeriod() {
@@ -319,7 +318,7 @@ void setPeriodTimes() {
   return;
 }
 
-/* OFFLINE MODE DURING NON-WEEKDAYS */
+/* OFFLINE MODE MODULE */
 
 //Check the current period value to see if it is an out of hours operation code and act appropriately.
 //In these cases the out of hours operation code leads to calling the offlineMode function.
@@ -355,7 +354,7 @@ void offlineMode(int periodMode, char reason[]) {
   return;
 }
 
-/* PIR SESNOR FUNCTIONS */
+/* MOTION DETECTION MODULE */
 
 //Read and push the PIR values to the notify function
 void updateMotion() {
