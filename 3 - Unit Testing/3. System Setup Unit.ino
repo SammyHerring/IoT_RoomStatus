@@ -1,7 +1,7 @@
 /* ======================= SYSTEM SETUP ======================== */
 
 STARTUP(
-  WiFi.selectAntenna(ANT_EXT); //Selects the external u.Fl Anetenna for the WiFi connection.
+  WiFi.selectAntenna(ANT_AUTO); //Allows the device to choose the antenna with the best signal.
   System.enableUpdates(); //Allows the device to download OTA updates at boot.
   );
 SYSTEM_MODE(MANUAL); //Forces the system to wait for cloud processing until allowed by algorithm.
