@@ -3,7 +3,7 @@
 /* ================ SETUP CODE (RUNS ONCE) ==================== */
 
 void setup() {
-  Serial.begin(9600); //Open Serial Transmission Port at BAUD Rate of 9600
+  Serial.begin(115200); //Open Serial Transmission Port at BAUD Rate of 115200
 
   pinMode(pir, INPUT); //Set pinMode of D2 (pir) to INPUT
 
@@ -15,7 +15,7 @@ void setup() {
     RGB.control(false);
   }
 
-  WiFi.connect(); //Connect to Wi-Fi network
+  WiFi.connect(WIFI_CONNECT_SKIP_LISTEN); //Connect to Wi-Fi network, regardless of network signal.
   int DBG = 0;
   while (!WiFi.ready()) {
     //Print Wi-Fi not connected yet once to serial if Wi-Fi not ready
@@ -30,6 +30,13 @@ void setup() {
       Particle.syncTime(); //Sync RTC to Particle Cloud time value
       setPeriodTimes(); //Function not considered in this test, but required for setup.
       updateTime(); //Function not considered in this test, but required for setup.
+
+      //Print time values on serial to ensure accuracy
+      Serial.println(formattedTime);
+      Serial.println(formattedDay);
+      Serial.println(period);
+
+      Serial.println("Setup Complete."); //Marks completion of System setup.
       break;
     }
     break;
