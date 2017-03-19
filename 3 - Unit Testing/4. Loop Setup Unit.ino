@@ -29,6 +29,7 @@ void setup() {
       Serial.println("W-Fi Connected."); //Print connected to Wi-Fi on serial
       Particle.syncTime(); //Sync RTC to Particle Cloud time value
       setPeriodTimes(); //Function not considered in this test, but required for setup.
+      delay(2000); //Added as due to threading the system attempts to complete them simultaneously.
       updateTime(); //Function not considered in this test, but required for setup.
 
       //Print time values on serial to ensure accuracy
