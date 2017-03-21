@@ -10,6 +10,8 @@ void setup() {
 
 void loop() {
   updateTime(); //Function not considered in this test, but required for logic operation.
+  //In the event of an error, if connected, process particle cloud data to send debug logs.
+  if (Particle.connected()) {Particle.process();}; //Process particle data if connected
   //Continue if connected to Particle Cloud
   while (Particle.connected()) {
     delay(2000);
