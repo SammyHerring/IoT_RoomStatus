@@ -20,7 +20,7 @@ void notifyGoodMorning() {
     delay(3000);
     for (int i=0;i<6;i++) {
       notifyString2 = i+1;
-      if ( reservation[day][i] == 1 ) {
+      if ( reservation[day-1][i] == 1 ) {
         notifyString4 = "Booked";
         notifyData = notifyString1+notifyString2+notifyString3+notifyString4;
         Serial.print("Period Notified - Red ");
@@ -42,7 +42,7 @@ void notifyGoodMorning() {
     morningNotified = true;
     delay(5000);
     return;
-  } else if (periodEnd[day][5] == minSinceMidnight) {
+  } else if (periodEnd[day-1][5] == minSinceMidnight) {
     morningNotified = false;
   }
 }
