@@ -157,14 +157,19 @@ void loop() {
 
     //Checks reservation status and sends appropriate notification.
     //See Logic tables on page 41 for more information.
-    if (reservation[day-1][period] == 0) {
-      if (pirState == HIGH) {
-        notify("vacant", "G16 is currently not booked, but movement has been detected.");
-      } else {
-        notify("vacant", "G16 is currently vacant.");
+    if ((1 <= day <= 7) && (0 <= period <= 5)) {
+      if (reservation[day-1][period] == 0) {
+        if (pirState == HIGH) {
+          notify("vacant", "G16 is currently not booked, but movement has been detected.");
+        } else {
+          notify("vacant", "G16 is currently vacant.");
+        }
+      } else if (reservation[day-1][period] == 1) {
+        notify("reserved", "G16 is currently reserved.");
       }
-    } else if (reservation[day-1][period] == 1) {
-      notify("reserved", "G16 is currently reserved.");
+    } else {
+      Serial.println("Notification Payload Logic Error.")
+      Serial.println("Time Parameters not within standardised region.");
     }
     Particle.process(); //Process Particle Cloud communication data
     break;

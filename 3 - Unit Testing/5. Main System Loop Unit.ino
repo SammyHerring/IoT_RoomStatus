@@ -28,17 +28,22 @@ void loop() {
 
     //Checks reservation status and sends appropriate notification.
     //See Logic tables on page 41 for more information.
-    if (reservation[day-1][period] == 0) {
-      if (pirState == HIGH) {
+    if ((1 <= day <= 7) && (0 <= period <= 5)) {
+      if (reservation[day-1][period] == 0) {
+        if (pirState == HIGH) {
+          //Notification Module not implemented, therefore tested using Serial output.
+          Serial.println("Vacant. No movement detected.");
+        } else {
+          //Notification Module not implemented, therefore tested using Serial output.
+          Serial.println("Vacant. Movement detected.");
+        }
+      } else if (reservation[day-1][period] == 1) {
         //Notification Module not implemented, therefore tested using Serial output.
-        Serial.println("Vacant. No movement detected.");
-      } else {
-        //Notification Module not implemented, therefore tested using Serial output.
-        Serial.println("Vacant. Movement detected.");
+        Serial.println("Reserved.");
       }
-    } else if (reservation[day-1][period] == 1) {
-      //Notification Module not implemented, therefore tested using Serial output.
-      Serial.println("Reserved.");
+    } else {
+      Serial.println("Notification Payload Logic Error.")
+      Serial.println("Time Parameters not within standardised region.");
     }
     Particle.process(); //Process Particle Cloud communication data
     break;
