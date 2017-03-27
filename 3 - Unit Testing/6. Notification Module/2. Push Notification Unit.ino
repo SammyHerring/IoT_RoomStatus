@@ -32,6 +32,10 @@ void notify(char type[], char data[]) {
       Serial.println(periodStateChange);
       Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE);
       periodNotified = true;
+    } else {
+      Serial.println("Notification Pushed. Type unknown.");
+      Serial.println(type);
+      Serial.println(data);
     }
 }
   return;

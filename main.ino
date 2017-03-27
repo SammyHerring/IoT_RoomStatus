@@ -168,7 +168,7 @@ void loop() {
         notify("reserved", "G16 is currently reserved.");
       }
     } else {
-      Serial.println("Notification Payload Logic Error.")
+      Serial.println("Notification Payload Logic Error.");
       Serial.println("Time Parameters not within standardised region.");
     }
     Particle.process(); //Process Particle Cloud communication data
@@ -237,6 +237,10 @@ void notify(char type[], char data[]) {
       Serial.println(periodStateChange);
       Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE);
       periodNotified = true;
+    } else {
+      Serial.println("Notification Pushed. Type unknown.");
+      Serial.println(type);
+      Serial.println(data);
     }
 }
   return;
