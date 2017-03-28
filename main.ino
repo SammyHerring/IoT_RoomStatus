@@ -123,6 +123,7 @@ void setup() {
       //Print time values on serial
       Serial.println(formattedTime);
       Serial.println(formattedDay);
+      Serial.println(day);
       Serial.println(period);
       notify("boot", "IoT Sensor now online."); //Call notify function with boot data
       Serial.println("Setup Complete."); //Print Setup complete on serial
@@ -147,6 +148,7 @@ void loop() {
     //Print time values on serial
     Serial.println(formattedTime);
     Serial.println(formattedDay);
+    Serial.println(day);
     Serial.println(period);
 
     delay(5000);
