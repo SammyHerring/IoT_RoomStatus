@@ -18,10 +18,13 @@ void loop() {
 void checkMode() {
   if (period == 7) { //Not weekday
     offlineMode(7, "Not a Weekday");
+    System.reset();
   } else if (period == 8) { //Period 1 more than 30 minutes away
     offlineMode(8, "Period 1 > 30 Minutes Away");
+    System.reset();
   } else if (period == 9) { //Period 6 more than 30 minutes ago
     offlineMode(9, "Period 6 > 30 Minutes Ago");
+    System.reset();
   }
   return;
 }
