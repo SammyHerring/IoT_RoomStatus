@@ -123,6 +123,7 @@ void setup() {
       //Print time values on serial
       Serial.println(formattedTime);
       Serial.println(formattedDay);
+      Serial.println(day);
       Serial.println(period);
       notify("boot", "IoT Sensor now online."); //Call notify function with boot data
       Serial.println("Setup Complete."); //Print Setup complete on serial
@@ -147,6 +148,7 @@ void loop() {
     //Print time values on serial
     Serial.println(formattedTime);
     Serial.println(formattedDay);
+    Serial.println(day);
     Serial.println(period);
 
     delay(5000);
@@ -157,14 +159,19 @@ void loop() {
 
     //Checks reservation status and sends appropriate notification.
     //See Logic tables on page 41 for more information.
-    if (reservation[day-1][period] == 0) {
-      if (pirState == HIGH) {
-        notify("vacant", "G16 is currently not booked, but movement has been detected.");
-      } else {
-        notify("vacant", "G16 is currently vacant.");
+    if ((1 <= day <= 7) && (0 <= period <= 5)) {
+      if (reservation[day-1][period] == 0) {
+        if (pirState == HIGH) {
+          notify("vacant", "G16 is currently not booked, but movement has been detected.");
+        } else {
+          notify("vacant", "G16 is currently vacant.");
+        }
+      } else if (reservation[day-1][period] == 1) {
+        notify("reserved", "G16 is currently reserved.");
       }
-    } else if (reservation[day-1][period] == 1) {
-      notify("reserved", "G16 is currently reserved.");
+    } else {
+      Serial.println("Notification Payload Logic Error.");
+      Serial.println("Time Parameters not within standardised region.");
     }
     Particle.process(); //Process Particle Cloud communication data
     break;
@@ -173,7 +180,7 @@ void loop() {
 
 /* ======================== ALL FUNCTIONS ====================== */
 
-/* NOTIFYER FUNCTIONS */
+/* NOTIFICATION MODULE */
 
 //Sends daily schedule notification 15 minutes before period one.
 //See Logic tables on page 41 for more information.
@@ -232,12 +239,16 @@ void notify(char type[], char data[]) {
       Serial.println(periodStateChange);
       Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE);
       periodNotified = true;
+    } else {
+      Serial.println("Notification Pushed. Type unknown.");
+      Serial.println(type);
+      Serial.println(data);
     }
 }
   return;
 }
 
-/* TIME UPDATE FUNCTIONS */
+/* TIME MODULE */
 
 //Update all time variables
 void updateTime() {
@@ -270,8 +281,7 @@ void weekdayAlignment() {
   return;
 }
 
-/* PERIOD CONTROL FUNCTIONS */
-
+/* PERIOD VARIABLE CONTROL (A PART OF TIME MODULE) */
 //Return the current period value by using the periodStart and periodEnd arrays.
 //See Logic tables on page 42 for more information.
 int updatePeriod() {
@@ -319,7 +329,7 @@ void setPeriodTimes() {
   return;
 }
 
-/* OFFLINE MODE DURING NON-WEEKDAYS */
+/* OFFLINE MODE MODULE */
 
 //Check the current period value to see if it is an out of hours operation code and act appropriately.
 //In these cases the out of hours operation code leads to calling the offlineMode function.
@@ -355,7 +365,7 @@ void offlineMode(int periodMode, char reason[]) {
   return;
 }
 
-/* PIR SESNOR FUNCTIONS */
+/* MOTION DETECTION MODULE */
 
 //Read and push the PIR values to the notify function
 void updateMotion() {
