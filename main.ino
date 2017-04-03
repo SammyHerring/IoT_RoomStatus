@@ -184,7 +184,7 @@ void loop() {
 //See Logic tables on page 41 for more information.
 void notifyGoodMorning() {
   int minSinceMidnight = (Time.local() % 86400) / 60;
-  if ( (periodStart[day-1][0]-15) == minSinceMidnight && !morningNotified ) {
+  if ( (periodStart[day-1][0]-30) == minSinceMidnight && !morningNotified ) {
     Particle.publish("IoTRoomSensor-GoodMorningIntro-G16", notifyData, PRIVATE);
     delay(3000);
     for (int i=0;i<6;i++) {
@@ -344,6 +344,9 @@ void checkMode() {
   } else if (period == 9) { //Period 6 more than 30 minutes ago
     offlineMode(9, "Period 6 > 30 Minutes Ago");
     System.reset();
+  } else if (period < 1 || period > 6) {
+    Serial.print("Non-standard Period Detected. Period: ");
+    Serial.println(period);
   }
   return;
 }
