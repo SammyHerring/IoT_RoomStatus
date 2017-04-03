@@ -157,13 +157,13 @@ void loop() {
       //Checks reservation status and sends appropriate notification.
       //See Logic tables on page 41 for more information.
       if ((1 <= day <= 7) && (0 <= period <= 5)) {
-        if (reservation[day-1][period] == 0) {
+        if (reservation[day][period] == 0) {
           if (pirState == HIGH) {
             notify("vacant", "G16 is currently not booked, but movement has been detected.");
           } else {
             notify("vacant", "G16 is currently vacant.");
           }
-        } else if (reservation[day-1][period] == 1) {
+        } else if (reservation[day][period] == 1) {
           notify("reserved", "G16 is currently reserved.");
         }
       } else {

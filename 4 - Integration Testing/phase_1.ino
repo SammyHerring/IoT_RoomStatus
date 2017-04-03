@@ -149,10 +149,10 @@ void loop() {
 
       //Checks reservation status and sends appropriate notification.
       if ((1 <= day <= 7) && (0 <= period <= 5)) {
-        if (reservation[day-1][period] == 0) {
+        if (reservation[day][period] == 0) {
           //Notification Module not implemented, therefore tested using Serial output.
           Serial.println("Vacant. No movement detected.");
-        } else if (reservation[day-1][period] == 1) {
+        } else if (reservation[day][period] == 1) {
           //Notification Module not implemented, therefore tested using Serial output.
           Serial.println("Reserved.");
         }
