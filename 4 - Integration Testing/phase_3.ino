@@ -9,13 +9,12 @@ PRODUCT_VERSION(1);
 bool DEBUG_MODE = false;
 
 /* ========================= CONSTANTS ========================= */
-/* SEE A LISTING OF ALL VARIABLES ON PAGE 39 */
 
 /* DEFINE VARIABLES */
 String formattedTime;
 int day;
 String formattedDay;
-int period;
+int period
 int movementVal = 0;
 int calibrateTime = 10000;
 int pirState = LOW;
@@ -97,7 +96,6 @@ void setup() {
   pinMode(pir, INPUT); //Set pinMode of D2 (pir) to INPUT
 
   //If DEBUG_MODE 'true' then enable on-board Status LED else disable on-board Status LED.
-  //See Logic tables on page 41 for more information.
   if (!DEBUG_MODE) {
     RGB.control(true);
     RGB.color(0, 0, 0);
@@ -139,7 +137,6 @@ void loop() {
     while (periodTimeComputed) {
       delay(2000);
       updateTime(); //Call updateTime function
-      checkMode(); //Call checkMode function
       updateMotion(); //Call updateMotion function
 
       //Print time values on serial
@@ -155,7 +152,6 @@ void loop() {
       notifyGoodMorning(); //Call notifyGoodMorning function
 
       //Checks reservation status and sends appropriate notification.
-      //See Logic tables on page 41 for more information.
       if ((1 <= day <= 7) && (0 <= period <= 5)) {
         if (reservation[day][period] == 0) {
           if (pirState == HIGH) {
@@ -175,6 +171,7 @@ void loop() {
     }
   }
 }
+
 
 /* ======================== ALL FUNCTIONS ====================== */
 
@@ -251,17 +248,16 @@ void notify(char type[], char data[]) {
 //Update all time variables
 void updateTime() {
   if (periodTimeComputed) {
-    formattedDay = Time.format(Time.now(), "%A"); //See variables listing on page 39.
-    formattedTime = Time.format(Time.now(), "%I:%M%p"); //See variables listing on page 39.
-    day = Time.weekday(); //See variables listing on page 39.
+    formattedDay = Time.format(Time.now(), "%A");
+    formattedTime = Time.format(Time.now(), "%I:%M%p");
+    day = Time.weekday();
     weekdayAlignment(); //Call weekdayAlignment function
-    period = updatePeriod(); //See variables listing on page 39.
+    period = updatePeriod();
     return;
   }
 }
 
 //Realign the day variable to be inline with the reservation and period time Arrays.
-//See Logic tables on page 42 for more information.
 void weekdayAlignment() {
   if (day == 1) {
     day = 7;
@@ -283,7 +279,6 @@ void weekdayAlignment() {
 
 /* PERIOD VARIABLE CONTROL (A PART OF TIME MODULE) */
 //Return the current period value by using the periodStart and periodEnd arrays.
-//See Logic tables on page 42 for more information.
 int updatePeriod() {
 
     int minSinceMidnight = (Time.local() % 86400) / 60;
@@ -306,7 +301,6 @@ int updatePeriod() {
 }
 
 //Set time values (minutes) for the periodStart and periodEnd arrays.
-//See Logic tables on page 42 for more information.
 void setPeriodTimes() {
   for (int x=0; x<5; x++) {
     for (int y=0; y<6; y++) {
@@ -325,42 +319,6 @@ void setPeriodTimes() {
         Serial.println(periodEnd[x][y]);
     }
     }
-  }
-  return;
-}
-
-/* OFFLINE MODE MODULE */
-
-//Check the current period value to see if it is an out of hours operation code and act appropriately.
-//In these cases the out of hours operation code leads to calling the offlineMode function.
-//See Logic tables on page 42 for more information.
-void checkMode() {
-  if (period == 7) { //Not weekday
-    offlineMode(7, "Not a Weekday");
-    System.reset();
-  } else if (period == 8) { //Period 1 more than 30 minutes away
-    offlineMode(8, "Period 1 > 30 Minutes Away");
-    System.reset();
-  } else if (period == 9) { //Period 6 more than 30 minutes ago
-    offlineMode(9, "Period 6 > 30 Minutes Ago");
-    System.reset();
-  }
-  return;
-}
-
-//Place the system in a sleep mode until the system is due to come into operation.
-void offlineMode(int periodMode, char reason[]) {
-  //Print the offline mode and reasoning on serial
-  Serial.print("--Offline Mode - ");
-  Serial.print(periodMode);
-  Serial.println("--");
-  Serial.println(reason);
-  delay(1500);
-  //While the period is an out of hours operation code
-  while (period == periodMode) {
-    Particle.process(); //Process Particle Cloud communication data
-    period = updatePeriod(); //Update the period variable value
-    System.sleep(300); //Enter sleep mode for 300 seconds, where the system is in a low power state.
   }
   return;
 }

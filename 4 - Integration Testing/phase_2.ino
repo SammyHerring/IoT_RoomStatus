@@ -9,13 +9,12 @@ PRODUCT_VERSION(1);
 bool DEBUG_MODE = false;
 
 /* ========================= CONSTANTS ========================= */
-/* SEE A LISTING OF ALL VARIABLES ON PAGE 39 */
 
 /* DEFINE VARIABLES */
 String formattedTime;
 int day;
 String formattedDay;
-int period;
+int period
 int movementVal = 0;
 int calibrateTime = 10000;
 int pirState = LOW;
@@ -97,7 +96,6 @@ void setup() {
   pinMode(pir, INPUT); //Set pinMode of D2 (pir) to INPUT
 
   //If DEBUG_MODE 'true' then enable on-board Status LED else disable on-board Status LED.
-  //See Logic tables on page 41 for more information.
   if (!DEBUG_MODE) {
     RGB.control(true);
     RGB.color(0, 0, 0);
@@ -117,7 +115,6 @@ void setup() {
     Serial.println("W-Fi Connected."); //Print connected to Wi-Fi on serial
     Particle.syncTime(); //Sync RTC to Particle Cloud time value
     Time.beginDST();
-    notify("boot", "IoT Sensor now online."); //Call notify function with boot data
     Serial.println("Setup Complete."); //Print Setup complete on serial
     break;
   }
@@ -139,7 +136,6 @@ void loop() {
     while (periodTimeComputed) {
       delay(2000);
       updateTime(); //Call updateTime function
-      checkMode(); //Call checkMode function
       updateMotion(); //Call updateMotion function
 
       //Print time values on serial
@@ -152,19 +148,19 @@ void loop() {
       updateTime(); //Call updateTime function
       delay(5000);
 
-      notifyGoodMorning(); //Call notifyGoodMorning function
-
       //Checks reservation status and sends appropriate notification.
-      //See Logic tables on page 41 for more information.
       if ((1 <= day <= 7) && (0 <= period <= 5)) {
         if (reservation[day][period] == 0) {
           if (pirState == HIGH) {
-            notify("vacant", "G16 is currently not booked, but movement has been detected.");
+            //Notification Module not implemented, therefore tested using Serial output.
+            Serial.println("Vacant. No movement detected.");
           } else {
-            notify("vacant", "G16 is currently vacant.");
+            //Notification Module not implemented, therefore tested using Serial output.
+            Serial.println("Vacant. Movement detected.");
           }
         } else if (reservation[day][period] == 1) {
-          notify("reserved", "G16 is currently reserved.");
+          //Notification Module not implemented, therefore tested using Serial output.
+          Serial.println("Reserved.");
         }
       } else {
         Serial.println("Notification Payload Logic Error.");
@@ -174,94 +170,24 @@ void loop() {
       break;
     }
   }
-}
 
 /* ======================== ALL FUNCTIONS ====================== */
-
-/* NOTIFICATION MODULE */
-
-//Sends daily schedule notification 15 minutes before period one.
-//See Logic tables on page 41 for more information.
-void notifyGoodMorning() {
-  int minSinceMidnight = (Time.local() % 86400) / 60;
-  if ( (periodStart[day-1][0]-15) == minSinceMidnight && !morningNotified ) {
-    Particle.publish("IoTRoomSensor-GoodMorningIntro-G16", notifyData, PRIVATE);
-    delay(3000);
-    for (int i=0;i<6;i++) {
-      notifyString2 = i+1;
-      if ( reservation[day-1][i] == 1 ) {
-        notifyString4 = "Booked";
-        notifyData = notifyString1+notifyString2+notifyString3+notifyString4;
-        Serial.print("Period Notified - Red ");
-        Serial.println(i);
-        Particle.publish("IoTRoomSensor-GoodMorningBooked-G16", notifyData, PRIVATE);
-      } else if (reservation[day-1][i] == 0) {
-        notifyString4 = "Available";
-        notifyData = notifyString1+notifyString2+notifyString3+notifyString4;
-        Serial.print("Period Notified - Green: ");
-        Serial.println(i);
-        Particle.publish("IoTRoomSensor-GoodMorningAvailable-G16", notifyData, PRIVATE);
-      } else {
-        Serial.print("Error on: ");
-        Serial.println(i);
-      }
-      delay(3000);
-    }
-    Particle.publish("IoTRoomSensor-GoodMorningTS-G16", "", PRIVATE);
-    morningNotified = true;
-    delay(5000);
-    return;
-  } else if (periodEnd[day-1][5] == minSinceMidnight) {
-    morningNotified = false;
-  }
-}
-
-//Send general notifications to the correct Slack Webhook using the Particle Cloud with JSON DATA.
-//See Logic tables on page 41 for more information.
-void notify(char type[], char data[]) {
-
-  if ( type == "boot" ) {
-    Particle.publish("IoTRoomSensor-Boot-G16", data, PRIVATE);
-  }
-
-  if ( !periodNotified || periodStateChange ) {
-    if ( type == "reserved" ) {
-      Serial.println("Notification: Reserved");
-      Serial.println(periodNotified);
-      Serial.println(periodStateChange);
-      Particle.publish("IoTRoomSensor-StateRed-G16", data, PRIVATE);
-      periodNotified = true;
-    } else if ( type == "vacant" ) {
-      Serial.println("Notification: Vacant");
-      Serial.println(periodNotified);
-      Serial.println(periodStateChange);
-      Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE);
-      periodNotified = true;
-    } else {
-      Serial.println("Notification Pushed. Type unknown.");
-      Serial.println(type);
-      Serial.println(data);
-    }
-}
-  return;
-}
 
 /* TIME MODULE */
 
 //Update all time variables
 void updateTime() {
   if (periodTimeComputed) {
-    formattedDay = Time.format(Time.now(), "%A"); //See variables listing on page 39.
-    formattedTime = Time.format(Time.now(), "%I:%M%p"); //See variables listing on page 39.
-    day = Time.weekday(); //See variables listing on page 39.
+    formattedDay = Time.format(Time.now(), "%A");
+    formattedTime = Time.format(Time.now(), "%I:%M%p");
+    day = Time.weekday();
     weekdayAlignment(); //Call weekdayAlignment function
-    period = updatePeriod(); //See variables listing on page 39.
+    period = updatePeriod();
     return;
   }
 }
 
 //Realign the day variable to be inline with the reservation and period time Arrays.
-//See Logic tables on page 42 for more information.
 void weekdayAlignment() {
   if (day == 1) {
     day = 7;
@@ -283,7 +209,6 @@ void weekdayAlignment() {
 
 /* PERIOD VARIABLE CONTROL (A PART OF TIME MODULE) */
 //Return the current period value by using the periodStart and periodEnd arrays.
-//See Logic tables on page 42 for more information.
 int updatePeriod() {
 
     int minSinceMidnight = (Time.local() % 86400) / 60;
@@ -306,7 +231,6 @@ int updatePeriod() {
 }
 
 //Set time values (minutes) for the periodStart and periodEnd arrays.
-//See Logic tables on page 42 for more information.
 void setPeriodTimes() {
   for (int x=0; x<5; x++) {
     for (int y=0; y<6; y++) {
@@ -325,42 +249,6 @@ void setPeriodTimes() {
         Serial.println(periodEnd[x][y]);
     }
     }
-  }
-  return;
-}
-
-/* OFFLINE MODE MODULE */
-
-//Check the current period value to see if it is an out of hours operation code and act appropriately.
-//In these cases the out of hours operation code leads to calling the offlineMode function.
-//See Logic tables on page 42 for more information.
-void checkMode() {
-  if (period == 7) { //Not weekday
-    offlineMode(7, "Not a Weekday");
-    System.reset();
-  } else if (period == 8) { //Period 1 more than 30 minutes away
-    offlineMode(8, "Period 1 > 30 Minutes Away");
-    System.reset();
-  } else if (period == 9) { //Period 6 more than 30 minutes ago
-    offlineMode(9, "Period 6 > 30 Minutes Ago");
-    System.reset();
-  }
-  return;
-}
-
-//Place the system in a sleep mode until the system is due to come into operation.
-void offlineMode(int periodMode, char reason[]) {
-  //Print the offline mode and reasoning on serial
-  Serial.print("--Offline Mode - ");
-  Serial.print(periodMode);
-  Serial.println("--");
-  Serial.println(reason);
-  delay(1500);
-  //While the period is an out of hours operation code
-  while (period == periodMode) {
-    Particle.process(); //Process Particle Cloud communication data
-    period = updatePeriod(); //Update the period variable value
-    System.sleep(300); //Enter sleep mode for 300 seconds, where the system is in a low power state.
   }
   return;
 }
