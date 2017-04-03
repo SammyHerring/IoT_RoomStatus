@@ -108,25 +108,14 @@ void setup() {
   while (!WiFi.ready()) {
     //Print Wi-Fi not connected yet once to serial if Wi-Fi not ready
     if (DBG == 0) {Serial.println("Wi-Fi Antenna Not Ready."); DBG = 1;}
-    } while (WiFi.ready()) {
+  } while (WiFi.ready()) {
     Serial.println("Wi-Fi Antenna Ready.");
     Serial.println("W-Fi Connecting.");
     Particle.connect();
-    //Continue once connected to Particle Cloud
-    while (Particle.connected()) {
-      Serial.println("W-Fi Connected."); //Print connected to Wi-Fi on serial
-      Particle.syncTime(); //Sync RTC to Particle Cloud time value
-      Time.beginDST();
-      delay(2000);
-      updateTime(); //Call updateTime function
-      //Print time values on serial
-      Serial.println(formattedTime);
-      Serial.println(formattedDay);
-      Serial.println(day);
-      Serial.println(period);
-      Serial.println("Setup Complete."); //Print Setup complete on serial
-      break;
-    }
+    Serial.println("W-Fi Connected."); //Print connected to Wi-Fi on serial
+    Particle.syncTime(); //Sync RTC to Particle Cloud time value
+    Time.beginDST();
+    Serial.println("Setup Complete."); //Print Setup complete on serial
     break;
   }
 }
