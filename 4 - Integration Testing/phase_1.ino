@@ -14,13 +14,14 @@ bool DEBUG_MODE = false;
 String formattedTime;
 int day;
 String formattedDay;
-int period = 0;
+int period
 int movementVal = 0;
 int calibrateTime = 10000;
 int pirState = LOW;
 bool periodNotified = false;
 bool morningNotified = false;
 bool periodStateChange = false;
+bool periodTimeComputed = false;
 
 /* NOTIFICATION JSON PAYLOAD STRINGS */
 String notifyString1 = "Period ";
@@ -115,7 +116,7 @@ void setup() {
     while (Particle.connected()) {
       Serial.println("W-Fi Connected."); //Print connected to Wi-Fi on serial
       Particle.syncTime(); //Sync RTC to Particle Cloud time value
-      setPeriodTimes(); //Call setPeriodTimes function
+      Time.beginDST();
       delay(2000);
       updateTime(); //Call updateTime function
       //Print time values on serial
@@ -137,34 +138,42 @@ void loop() {
   if (Particle.connected()) {Particle.process();}; //Process particle data if connected
   //Continue if connected to Particle Cloud
   while (Particle.connected()) {
-    delay(2000);
-    updateTime(); //Call updateTime function
-
-    //Print time values on serial
-    Serial.println(formattedTime);
-    Serial.println(formattedDay);
-    Serial.println(day);
-    Serial.println(period);
-
-    delay(5000);
-    updateTime(); //Call updateTime function
-    delay(5000);
-
-    //Checks reservation status and sends appropriate notification.
-    if ((1 <= day <= 7) && (0 <= period <= 5)) {
-      if (reservation[day-1][period] == 0) {
-        //Notification Module not implemented, therefore tested using Serial output.
-        Serial.println("Vacant. No movement detected.");
-      } else if (reservation[day-1][period] == 1) {
-        //Notification Module not implemented, therefore tested using Serial output.
-        Serial.println("Reserved.");
-      }
-    } else {
-      Serial.println("Notification Payload Logic Error.");
-      Serial.println("Time Parameters not within standardised region.");
+    if (!periodTimeComputed) {
+      Serial.println("Period Times Not Yet Computed");
+      Time.beginDST();
+      setPeriodTimes();
+      periodTimeComputed = true;
     }
-    Particle.process(); //Process Particle Cloud communication data
-    break;
+    while (periodTimeComputed) {
+      delay(2000);
+      updateTime(); //Call updateTime function
+
+      //Print time values on serial
+      Serial.println(formattedTime);
+      Serial.println(formattedDay);
+      Serial.println(day);
+      Serial.println(period);
+
+      delay(5000);
+      updateTime(); //Call updateTime function
+      delay(5000);
+
+      //Checks reservation status and sends appropriate notification.
+      if ((1 <= day <= 7) && (0 <= period <= 5)) {
+        if (reservation[day-1][period] == 0) {
+          //Notification Module not implemented, therefore tested using Serial output.
+          Serial.println("Vacant. No movement detected.");
+        } else if (reservation[day-1][period] == 1) {
+          //Notification Module not implemented, therefore tested using Serial output.
+          Serial.println("Reserved.");
+        }
+      } else {
+        Serial.println("Notification Payload Logic Error.");
+        Serial.println("Time Parameters not within standardised region.");
+      }
+      Particle.process(); //Process Particle Cloud communication data
+      break;
+    }
   }
 }
 
@@ -174,12 +183,14 @@ void loop() {
 
 //Update all time variables
 void updateTime() {
-  formattedDay = Time.format(Time.now(), "%A");
-  formattedTime = Time.format(Time.now(), "%I:%M%p");
-  day = Time.weekday();
-  weekdayAlignment(); //Call weekdayAlignment function
-  period = updatePeriod();
-  return;
+  if (periodTimeComputed) {
+    formattedDay = Time.format(Time.now(), "%A");
+    formattedTime = Time.format(Time.now(), "%I:%M%p");
+    day = Time.weekday();
+    weekdayAlignment(); //Call weekdayAlignment function
+    period = updatePeriod();
+    return;
+  }
 }
 
 //Realign the day variable to be inline with the reservation and period time Arrays.
@@ -210,11 +221,11 @@ int updatePeriod() {
     for (int i=0;i<6;i++) {
       if (day == 6 || day == 7 ) {
         return 7;
-      } else if ( minSinceMidnight < (periodStart[day-1][0]+30) ) {
+      } else if ( minSinceMidnight < (periodStart[day][0]+30) ) {
         return 8;
-      } else if ( minSinceMidnight > (periodEnd[day-1][5]+30) ) {
+      } else if ( minSinceMidnight > (periodEnd[day][5]+30) ) {
         return 9;
-      } else if ( periodStart[day-1][i] <= minSinceMidnight && minSinceMidnight < periodEnd[day-1][i] ) {
+      } else if ( periodStart[day][i] <= minSinceMidnight && minSinceMidnight < periodEnd[day][i] ) {
         if ( period != 0 && i != period ) {
           periodNotified = false;
         } else {
