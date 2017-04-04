@@ -1,0 +1,111 @@
+*Pick And Place List
+*Company=
+*Author=
+*eMail=
+*
+*Project=Fritzing Modular Design PCB Rev 1.0b
+*Date=17:38:59
+*CreatedBy=Fritzing 0.9.3b.04.19.5c895d327c44a3114e5fcc9d8260daf0cbb52806
+*
+*
+*Coordinates in mm, always center of component
+*Origin 0/0=Lower left corner of PCB
+*Rotation in degree (0-360, math. pos.)
+*
+*No;Value;Package;X;Y;Rotation;Side;Name
+1;;;116.746;-52.7797;0;Bottom;Via33
+2;;;71.0256;-22.2998;0;Bottom;Via4
+3;;;109.126;-95.9597;180;Bottom;Neopixel RGB
+4;;;61.0539;-35.0938;0;Bottom;Via66
+5;;;45.6256;-52.7797;0;Bottom;Via19
+6;;;126.906;-78.1797;0;Bottom;Via50
+7;;;40.5456;-37.5398;0;Bottom;Via76
+8;;;60.8656;-22.2998;0;Bottom;Via3
+9;;;45.6256;-17.2198;0;Bottom;Via52
+10;;;30.3856;-1.97982;0;Bottom;Via79
+11;;;80.2825;-52.7797;0;Bottom;Via45
+12;;;76.1056;-45.1598;0;Bottom;Via41
+13;;;109.126;-19.6187;0;Bottom;Via70
+14;;tactile-pth-12mm;77.4758;-60.4397;0;Bottom;Centre Switch
+15;;;35.4656;-22.2998;0;Bottom;Via46
+16;;;30.3856;-19.7598;0;Bottom;Via77
+17;;;109.126;-40.0798;0;Bottom;Via69
+18;;;53.2456;-70.5597;0;Bottom;Via16
+19;;;35.4656;-14.6798;0;Bottom;Via47
+20;;;111.666;-60.3997;0;Bottom;Via27
+21;;;10.0656;-14.6798;0;Bottom;Via11
+22;;;68.4856;-78.1797;0;Bottom;Via42
+23;;;104.046;-9.59982;0;Bottom;Via29
+24;;;45.6256;-42.6198;0;Bottom;Via22
+25;;1x01_offset;20.2257;-78.9036;0;Bottom;GND
+26;;;109.126;-12.1398;0;Bottom;Via84
+27;;;40.5456;-17.2198;0;Bottom;Via53
+28;;;43.0856;-9.59982;0;Bottom;Via54
+29;;;7.52564;-68.0197;0;Bottom;Via38
+30;;;7.52564;-73.0997;0;Bottom;Via37
+31;;tactile-pth-12mm;95.2558;-60.4397;0;Bottom;Right Switch
+32;;;50.8185;-60.5126;0;Bottom;Via6
+33;;;92.6792;-32.4597;90;Bottom;Logic Level
+34;;;126.906;-57.8597;0;Bottom;Via61
+35;;;106.586;-55.3197;0;Bottom;Via39
+36;;;111.666;-52.7797;0;Bottom;Via28
+37;;;22.7656;-65.4797;0;Bottom;Via14
+38;;;86.2656;-70.5597;0;Bottom;Via17
+39;;;30.3856;-15.056;0;Bottom;Via78
+40;;;104.046;-24.8398;0;Bottom;Via30
+41;;;104.046;-57.8597;0;Bottom;Via58
+42;;;17.6856;-50.2398;0;Bottom;Via36
+43;;;4.98564;-29.9198;0;Bottom;Via83
+44;;;77.3757;-87.3238;0;Bottom;OLED Display
+45;;;121.826;-78.1797;0;Bottom;Via51
+46;;;116.746;-57.8597;0;Bottom;Via34
+47;;;48.1656;-88.3397;0;Bottom;Via1
+48;;;119.286;-24.8398;0;Bottom;Via10
+49;;;101.506;-12.1398;0;Bottom;Via85
+50;;1x01_offset;12.6057;-78.9036;0;Bottom;SW
+51;;;96.4256;-55.3197;0;Bottom;Via40
+52;;;106.586;-19.7598;0;Bottom;Via68
+53;;;8.66028;-101.535;0;Bottom;IMG1
+54;;;40.5456;-1.97982;0;Bottom;Via49
+55;;;101.506;-34.9998;0;Bottom;Via67
+56;;;119.286;-79.4497;0;Bottom;Piezo Buzzer
+57;;;104.046;-52.7797;0;Bottom;Via59
+58;;1x01_offset;17.6857;-78.9036;0;Bottom;GND
+59;;;48.1656;-78.1797;0;Bottom;Via2
+60;;;72.7754;-52.8926;0;Bottom;Via44
+61;;;40.5456;-9.59982;0;Bottom;Via48
+62;;;45.6256;-40.0798;0;Bottom;Via75
+63;;;30.3856;-9.59982;0;Bottom;Via80
+64;;;111.666;-24.8398;0;Bottom;Via9
+65;;;28.2925;-104.497;0;Bottom;TXT1
+66;;tactile-pth-12mm;59.6958;-60.4397;0;Bottom;Left Switch
+67;;1x01_offset;15.1457;-78.9036;0;Bottom;On
+68;;;109.267;-24.9104;0;Bottom;Via71
+69;;;4.98564;-34.9998;0;Bottom;Via82
+70;;;7.52564;-29.9198;0;Bottom;Via8
+71;;;86.2656;-57.8597;0;Bottom;Via18
+72;;;116.746;-14.6798;0;Bottom;Via74
+73;;;17.6856;-55.3197;0;Bottom;Via35
+74;;;50.7056;-52.7797;0;Bottom;Via20
+75;;;28.86;-99.1053;0;Bottom;TXT1
+76;;;111.666;-68.0197;0;Bottom;Via65
+77;;;45.6256;-65.4797;0;Bottom;Via15
+78;;;46.0021;-50.2398;0;Bottom;Via26
+79;;THT;122.334;-59.2567;0;Bottom;Door Switch
+80;;;50.6117;-42.7138;0;Bottom;Via21
+81;;;21.483;-41.3497;90;Bottom;Photon
+82;;;63.4057;-36.2697;90;Bottom;FRAM
+83;;;10.0656;-9.59982;0;Bottom;Via12
+84;;;7.52564;-34.9998;0;Bottom;Via7
+85;;avr_icsp;120.699;-37.5375;0;Bottom;SMP Header
+86;;;121.826;-14.6798;0;Bottom;Via73
+87;;;96.4256;-19.7598;0;Bottom;Via72
+88;;;45.287;-60.5126;0;Bottom;Via5
+89;;;28.2691;-101.886;0;Bottom;TXT1
+90;;;60.8656;-50.2398;0;Bottom;Via25
+91;;;22.7656;-60.3997;0;Bottom;Via13
+92;;;50.7056;-37.5398;0;Bottom;Via81
+93;;;68.4856;-60.3997;0;Bottom;Via43
+94;;;111.666;-73.0997;0;Bottom;Via63
+95;;;104.046;-73.0997;0;Bottom;Via64
+96;;;39.2757;-83.2597;0;Bottom;3.3v Buck
