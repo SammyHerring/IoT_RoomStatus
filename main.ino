@@ -37,11 +37,11 @@ int pir = D2;
 /* ROOM ALLOCATION ARRAYS */
 // FORMAT OF ARRAYS: [WEEKDAY][PERIOD]
  int reservation[5][6] = {
-   {1, 1, 0, 1, 1, 1} ,   /*  initialisers for row indexed by 0 | MONDAY */
-   {1, 0, 1, 1, 0, 1} ,   /*  initialisers for row indexed by 1 | TUESDAY */
-   {1, 1, 0, 1, 1, 0} ,   /*  initialisers for row indexed by 3 | WEDNESDAY */
-   {1, 0, 1, 0, 1, 1} ,   /*  initialisers for row indexed by 4 | THURSDAY*/
-   {0, 1, 1, 1, 1, 1}     /*  initialisers for row indexed by 5 | FRIDAY */
+   {0, 0, 0, 1, 0, 1} ,   /*  initialisers for row indexed by 0 | MONDAY */
+   {1, 0, 1, 0, 0, 0} ,   /*  initialisers for row indexed by 1 | TUESDAY */
+   {0, 0, 0, 1, 1, 0} ,   /*  initialisers for row indexed by 3 | WEDNESDAY */
+   {1, 0, 0, 0, 0, 1} ,   /*  initialisers for row indexed by 4 | THURSDAY*/
+   {0, 0, 0, 0, 0, 1}     /*  initialisers for row indexed by 5 | FRIDAY */
 };
 
 int periodStartHr[5][6] = {
