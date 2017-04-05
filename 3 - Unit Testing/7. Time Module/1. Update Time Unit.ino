@@ -13,11 +13,28 @@ void loop() {
   //This will be tested later in the integration tests.
 }
 
-void updateTime() {
-  formattedDay = Time.format(Time.now(), "%A");
-  formattedTime = Time.format(Time.now(), "%I:%M%p");
-  day = Time.weekday();
+if (periodTimeComputed) {
+  int minSinceMidnight = (Time.local() % 86400) / 60;
+  formattedDay = Time.format(Time.now(), "%A"); //See variables listing on page 39.
+  formattedTime = Time.format(Time.now(), "%I:%M%p"); //See variables listing on page 39.
+  day = Time.weekday(); //See variables listing on page 39.
   weekdayAlignment(); //Call weekdayAlignment function
-  period = updatePeriod();
+  period = updatePeriod(); //See variables listing on page 39.
+
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println(formattedDay);
+  display.println(formattedTime);
+  display.display();
+
+  //Reset the booking reservation variables for the next period
+  if (minSinceMidnight == periodEnd[day][period]) {
+    periodStateChange = false;
+    periodChangeNotified = false;
+    reservationOffered = false;
+  }
   return;
+}
 }
