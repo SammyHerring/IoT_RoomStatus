@@ -1,6 +1,9 @@
 /* ======================= LIBRARY IMPORTS ====================== */
 
 #include "application.h"
+#include "neopixel.h" //Neopixel library from Adafruit
+#include "Adafruit_GFX.h" //Graphics library from Adafruit
+#include "Adafruit_SSD1306.h" //OLED library from Adafruit
 
 /* ======================= PRODUCT SETUP ======================= */
 
