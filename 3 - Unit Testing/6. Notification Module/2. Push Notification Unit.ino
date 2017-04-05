@@ -17,26 +17,27 @@ void notify(char type[], char data[]) {
 
   if ( type == "boot" ) {
     Particle.publish("IoTRoomSensor-Boot-G16", data, PRIVATE);
-  }
-
-  if ( !periodNotified || periodStateChange ) {
-    if ( type == "reserved" ) {
-      Serial.println("Notification: Reserved");
-      Serial.println(periodNotified);
-      Serial.println(periodStateChange);
-      Particle.publish("IoTRoomSensor-StateRed-G16", data, PRIVATE);
-      periodNotified = true;
-    } else if ( type == "vacant" ) {
-      Serial.println("Notification: Vacant");
-      Serial.println(periodNotified);
-      Serial.println(periodStateChange);
-      Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE);
-      periodNotified = true;
+  } else if ( !periodNotified || periodStateChange ) {
+      if (periodStateChange && !periodChangeNotified) {
+        Serial.println("Notification: New Reservation");
+        Particle.publish("IoTRoomSensor-StateRed-G16", "G16 has been reserved.", PRIVATE);
+        periodChangeNotified = true;
+      } else if ( type == "reserved" ) {
+        Serial.println("Notification: Reserved");
+        Serial.println(periodNotified);
+        Serial.println(periodStateChange);
+        Particle.publish("IoTRoomSensor-StateRed-G16", data, PRIVATE);
+        periodNotified = true;
+      } else if ( type == "vacant" ) {
+        Serial.println("Notification: Vacant");
+        Serial.println(periodNotified);
+        Serial.println(periodStateChange);
+        Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE);
+        periodNotified = true;
+      }
     } else {
       Serial.println("Notification Pushed. Type unknown.");
       Serial.println(type);
       Serial.println(data);
     }
-}
-  return;
 }
