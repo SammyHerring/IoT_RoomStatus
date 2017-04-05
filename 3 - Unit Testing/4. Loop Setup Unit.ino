@@ -17,6 +17,7 @@ void setup() {
   display.clearDisplay();   // clears the screen and buffer
 
   delay(500);
+  bootOLED(); //Call the bootOLED() function
 
   //If DEBUG_MODE 'true' then enable on-board Status LED else disable on-board Status LED.
   //See Logic tables on page 41 for more information.
