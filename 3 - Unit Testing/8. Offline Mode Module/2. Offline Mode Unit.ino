@@ -20,9 +20,19 @@ void offlineMode(int periodMode, char reason[]) {
   Serial.print(periodMode);
   Serial.println("--");
   Serial.println(reason);
+  //If in offline mode show white colour on RGB Status LEDs
+  fullWhite();
+  //Notify the users of Offline Mode on the OLED Display
+  display.clearDisplay();
+  display.setTextSize(3);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println("Offline");
+  display.display();
   delay(1500);
   //While the period is an out of hours operation code
   while (period == periodMode) {
+    //pulseWhite(5);
     Particle.process(); //Process Particle Cloud communication data
     period = updatePeriod(); //Update the period variable value
     System.sleep(300); //Enter sleep mode for 300 seconds, where the system is in a low power state.
