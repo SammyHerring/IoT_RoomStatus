@@ -1,16 +1,25 @@
 /* ========================= CONSTANTS ========================= */
+/* SEE A LISTING OF ALL VARIABLES ON PAGE 39 */
 
 /* DEFINE VARIABLES */
 String formattedTime;
 int day;
 String formattedDay;
-int period = 0;
+int period;
 int movementVal = 0;
 int calibrateTime = 10000;
 int pirState = LOW;
 bool periodNotified = false;
 bool morningNotified = false;
 bool periodStateChange = false;
+//Boolean value that determines whether the notification regarding period reservation change has been sent
+bool periodChangeNotified = false;
+//Boolean value that ensures that a reservation offer has been made
+bool reservationOffered = false;
+//Boolean value that turns true when the period timing value have been calculated
+bool periodTimeComputed = false;
+//Value used to set whether the switch is open or closed
+int centreSwitch = 0;
 
 /* NOTIFICATION JSON PAYLOAD STRINGS */
 String notifyString1 = "Period ";
@@ -20,16 +29,28 @@ String notifyString4;
 String notifyData;
 
 /* DEFINE PINOUTS */
-int pir = D2;
+int pir = D2; //Set the pin number of the pir sensor input
+int centre = D5; //Set the pin number of the centre switch
+
+#define PIXEL_PIN_PIR D4 //Pin for the RGB Status LED
+#define PIXEL_COUNT_PIR 12 //Count of the number of RGB LEDs
+#define PIXEL_TYPE_PIR SK6812RGBW //RGB LED Type
+#define BRIGHTNESS_PIR 50 //Set Brightnesss of RGB LEDs
+
+#define OLED_RESET A5 //Set the OLED Screen Reset Pin
+
+//Set the size parameters of the IoT Boot Logo
+#define IoT_Logo_HEIGHT 64
+#define IoT_Logo_WIDTH  128
 
 /* ROOM ALLOCATION ARRAYS */
 // FORMAT OF ARRAYS: [WEEKDAY][PERIOD]
  int reservation[5][6] = {
-   {1, 1, 0, 1, 1, 1} ,   /*  initialisers for row indexed by 0 | MONDAY */
-   {1, 0, 1, 1, 0, 1} ,   /*  initialisers for row indexed by 1 | TUESDAY */
-   {1, 1, 0, 1, 1, 0} ,   /*  initialisers for row indexed by 3 | WEDNESDAY */
-   {1, 0, 1, 0, 1, 1} ,   /*  initialisers for row indexed by 4 | THURSDAY*/
-   {0, 1, 1, 1, 1, 1}     /*  initialisers for row indexed by 5 | FRIDAY */
+   {0, 0, 0, 1, 0, 1} ,   /*  initialisers for row indexed by 0 | MONDAY */
+   {1, 0, 1, 0, 0, 0} ,   /*  initialisers for row indexed by 1 | TUESDAY */
+   {0, 0, 0, 1, 1, 0} ,   /*  initialisers for row indexed by 3 | WEDNESDAY */
+   {1, 0, 0, 0, 0, 1} ,   /*  initialisers for row indexed by 4 | THURSDAY*/
+   {0, 0, 0, 0, 0, 1}     /*  initialisers for row indexed by 5 | FRIDAY */
 };
 
 int periodStartHr[5][6] = {
