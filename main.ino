@@ -1,6 +1,9 @@
 /* ======================= LIBRARY IMPORTS ====================== */
 
 #include "application.h"
+#include "neopixel.h" //Neopixel library from Adafruit
+#include "Adafruit_GFX.h" //Graphics library from Adafruit
+#include "Adafruit_SSD1306.h" //OLED library from Adafruit
 
 /* ======================= PRODUCT SETUP ======================= */
 
@@ -22,7 +25,14 @@ int pirState = LOW;
 bool periodNotified = false;
 bool morningNotified = false;
 bool periodStateChange = false;
+//Boolean value that determines whether the notification regarding period reservation change has been sent
+bool periodChangeNotified = false;
+//Boolean value that ensures that a reservation offer has been made
+bool reservationOffered = false;
+//Boolean value that turns true when the period timing value have been calculated
 bool periodTimeComputed = false;
+//Value used to set whether the switch is open or closed
+int centreSwitch = 0;
 
 /* NOTIFICATION JSON PAYLOAD STRINGS */
 String notifyString1 = "Period ";
@@ -32,7 +42,19 @@ String notifyString4;
 String notifyData;
 
 /* DEFINE PINOUTS */
-int pir = D2;
+int pir = D2; //Set the pin number of the pir sensor input
+int centre = D5; //Set the pin number of the centre switch
+
+#define PIXEL_PIN_PIR D4 //Pin for the RGB Status LED
+#define PIXEL_COUNT_PIR 12 //Count of the number of RGB LEDs
+#define PIXEL_TYPE_PIR SK6812RGBW //RGB LED Type
+#define BRIGHTNESS_PIR 50 //Set Brightnesss of RGB LEDs
+
+#define OLED_RESET A5 //Set the OLED Screen Reset Pin
+
+//Set the size parameters of the IoT Boot Logo
+#define IoT_Logo_HEIGHT 64
+#define IoT_Logo_WIDTH  128
 
 /* ROOM ALLOCATION ARRAYS */
 // FORMAT OF ARRAYS: [WEEKDAY][PERIOD]
@@ -89,12 +111,32 @@ STARTUP(
 SYSTEM_MODE(MANUAL); //Forces the system to wait for cloud processing until allowed by algorithm.
 SYSTEM_THREAD(ENABLED); //Allows a secondary thread to be used for the cloud processing.
 
+//Setup the parameters of the RGB and OLED functions
+Adafruit_NeoPixel pir_neo = Adafruit_NeoPixel(PIXEL_COUNT_PIR, PIXEL_PIN_PIR, PIXEL_TYPE_PIR);
+Adafruit_SSD1306 display(OLED_RESET);
+
 /* ================ SETUP CODE (RUNS ONCE) ==================== */
 
 void setup() {
   Serial.begin(115200); //Open Serial Transmission Port at BAUD Rate of 115200
 
   pinMode(pir, INPUT); //Set pinMode of D2 (pir) to INPUT
+  pinMode(centre, INPUT_PULLUP); //Set pinMode of D5 Centre Switch to INPUT PULLED HIGH
+
+  //Set the RGB Status LED to be blank
+  pir_neo.setBrightness(BRIGHTNESS_PIR);
+  pir_neo.begin();
+  colorWipe_PIR(pir_neo.Color(0, 0, 0), 0);
+  pir_neo.show(); // Initialize all pixels to 'off'
+
+  //Start the display serial transmission and clear the display's content
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3D);  // initialize with the I2C addr 0x3D (for the 128x64)
+  display.display();
+  delay(3000);
+  display.clearDisplay();   // clears the screen and buffer
+
+  bootOLED(); //Call the bootOLED() function
+  delay(500);
 
   //If DEBUG_MODE 'true' then enable on-board Status LED else disable on-board Status LED.
   //See Logic tables on page 41 for more information.
@@ -108,6 +150,7 @@ void setup() {
   WiFi.connect(WIFI_CONNECT_SKIP_LISTEN); //Connect to Wi-Fi network, regardless of network signal.
   int DBG = 0;
   while (!WiFi.ready()) {
+    loadingOLED(); //Call the loadingOLED function()
     //Print Wi-Fi not connected yet once to serial if Wi-Fi not ready
     if (DBG == 0) {Serial.println("Wi-Fi Antenna Not Ready."); DBG = 1;}
   } while (WiFi.ready()) {
@@ -118,6 +161,7 @@ void setup() {
     Particle.syncTime(); //Sync RTC to Particle Cloud time value
     Time.beginDST();
     notify("boot", "IoT Sensor now online."); //Call notify function with boot data
+    readyOLED(); //Call the readyOLED() function
     Serial.println("Setup Complete."); //Print Setup complete on serial
     break;
   }
@@ -157,13 +201,52 @@ void loop() {
       //Checks reservation status and sends appropriate notification.
       //See Logic tables on page 41 for more information.
       if ((1 <= day <= 7) && (0 <= period <= 5)) {
+
         if (reservation[day][period] == 0) {
           if (pirState == HIGH) {
+            //Set the RGB LED Colour to Green
+            colorWipe_PIR(pir_neo.Color(0, 150, 0), 0);
+            pir_neo.show(); // Initialize all pixels to 'off'
             notify("vacant", "G16 is currently not booked, but movement has been detected.");
           } else {
+            //Set the RGB LED Colour to Green
+            colorWipe_PIR(pir_neo.Color(0, 150, 0), 0);
+            pir_neo.show(); // Initialize all pixels to 'off'
             notify("vacant", "G16 is currently vacant.");
           }
+          //If the room is avaliable offer room booking
+          //Offer room booking for 2 minutes
+          unsigned long startTime = millis();
+          if (!periodStateChange && reservationOffered) {
+  	        while (millis() - startTime < 120000) {
+                display.clearDisplay();
+                display.setTextSize(1);
+                display.setTextColor(WHITE);
+                display.setCursor(0,0);
+                display.println("Reservation Avaliable.");
+                display.println("Press button to book.");
+                display.display();
+                delay(1000);
+                display.clearDisplay();
+                display.display();
+                Serial.println("Reservation oppourtunity. Press button.");
+                //Wait for the button to be pressed
+                if (digitalRead(centre) == LOW) {
+                  //If button pressed, set periodStateChange variable to true to notify users
+                  //Also set reservationOffered variable to true to prevent the system offering the reservation twice.
+                  periodStateChange = true;
+                  reservationOffered = true;
+                  break;
+
+                }
+  	        }
+            //Prevent reservation being offered more than once
+            reservationOffered = true;
+          }
         } else if (reservation[day][period] == 1) {
+          //Set the RGB LED Colour to Red
+          colorWipe_PIR(pir_neo.Color(150, 0, 0), 0);
+          pir_neo.show(); // Initialize all pixels to 'off'
           notify("reserved", "G16 is currently reserved.");
         }
       } else {
@@ -222,28 +305,29 @@ void notify(char type[], char data[]) {
 
   if ( type == "boot" ) {
     Particle.publish("IoTRoomSensor-Boot-G16", data, PRIVATE);
-  }
-
-  if ( !periodNotified || periodStateChange ) {
-    if ( type == "reserved" ) {
-      Serial.println("Notification: Reserved");
-      Serial.println(periodNotified);
-      Serial.println(periodStateChange);
-      Particle.publish("IoTRoomSensor-StateRed-G16", data, PRIVATE);
-      periodNotified = true;
-    } else if ( type == "vacant" ) {
-      Serial.println("Notification: Vacant");
-      Serial.println(periodNotified);
-      Serial.println(periodStateChange);
-      Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE);
-      periodNotified = true;
+  } else if ( !periodNotified || periodStateChange ) {
+      if (periodStateChange && !periodChangeNotified) {
+        Serial.println("Notification: New Reservation");
+        Particle.publish("IoTRoomSensor-StateRed-G16", "G16 has been reserved.", PRIVATE);
+        periodChangeNotified = true;
+      } else if ( type == "reserved" ) {
+        Serial.println("Notification: Reserved");
+        Serial.println(periodNotified);
+        Serial.println(periodStateChange);
+        Particle.publish("IoTRoomSensor-StateRed-G16", data, PRIVATE);
+        periodNotified = true;
+      } else if ( type == "vacant" ) {
+        Serial.println("Notification: Vacant");
+        Serial.println(periodNotified);
+        Serial.println(periodStateChange);
+        Particle.publish("IoTRoomSensor-StateGreen-G16", data, PRIVATE);
+        periodNotified = true;
+      }
     } else {
       Serial.println("Notification Pushed. Type unknown.");
       Serial.println(type);
       Serial.println(data);
     }
-}
-  return;
 }
 
 /* TIME MODULE */
@@ -251,11 +335,27 @@ void notify(char type[], char data[]) {
 //Update all time variables
 void updateTime() {
   if (periodTimeComputed) {
+    int minSinceMidnight = (Time.local() % 86400) / 60;
     formattedDay = Time.format(Time.now(), "%A"); //See variables listing on page 39.
     formattedTime = Time.format(Time.now(), "%I:%M%p"); //See variables listing on page 39.
     day = Time.weekday(); //See variables listing on page 39.
     weekdayAlignment(); //Call weekdayAlignment function
     period = updatePeriod(); //See variables listing on page 39.
+
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(0,0);
+    display.println(formattedDay);
+    display.println(formattedTime);
+    display.display();
+
+    //Reset the booking reservation variables for the next period
+    if (minSinceMidnight == periodEnd[day][period]) {
+      periodStateChange = false;
+      periodChangeNotified = false;
+      reservationOffered = false;
+    }
     return;
   }
 }
@@ -358,9 +458,19 @@ void offlineMode(int periodMode, char reason[]) {
   Serial.print(periodMode);
   Serial.println("--");
   Serial.println(reason);
+  //If in offline mode show white colour on RGB Status LEDs
+  fullWhite();
+  //Notify the users of Offline Mode on the OLED Display
+  display.clearDisplay();
+  display.setTextSize(3);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println("Offline");
+  display.display();
   delay(1500);
   //While the period is an out of hours operation code
   while (period == periodMode) {
+    //pulseWhite(5);
     Particle.process(); //Process Particle Cloud communication data
     period = updatePeriod(); //Update the period variable value
     System.sleep(300); //Enter sleep mode for 300 seconds, where the system is in a low power state.
@@ -401,5 +511,102 @@ void reportPIR() {
     if (pirState == HIGH) {
       pirState = LOW;
     }
+  }
+}
+
+/* PIR RGB LED MODULE */
+
+// Fill each pixel one after the other with a given color
+void colorWipe_PIR(uint32_t c, uint8_t wait) {
+  for(uint16_t i=0; i<pir_neo.numPixels(); i++) {
+    pir_neo.setPixelColor(i, c);
+    pir_neo.show();
+    delay(wait);
+  }
+}
+
+//Set the RGB LEDs to full white
+void fullWhite() {
+  for(uint16_t i=0; i<pir_neo.numPixels(); i++) {
+    pir_neo.setPixelColor(i, pir_neo.Color(0,0,0, 255 ) );
+  }
+  pir_neo.show();
+}
+
+/* DISPLAY INFORMATION MODULE */
+
+//Wi-Fi Connecting animation
+void loadingOLED() {
+  display.clearDisplay();
+  display.setTextSize(3);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.print(" ");
+  display.println("Wi-Fi");
+  display.setTextSize(1);
+  display.println("");
+  display.setTextSize(3);
+  display.println("  <->");
+  display.display();
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(" ");
+  display.println("Wi-Fi");
+  display.setTextSize(1);
+  display.println("");
+  display.setTextSize(3);
+  display.println(" <--->");
+  display.display();
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(" ");
+  display.println("Wi-Fi");
+  display.setTextSize(1);
+  display.println("");
+  display.setTextSize(3);
+  display.println("<----->");
+  display.display();
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print(" ");
+  display.println("Wi-Fi");
+  display.setTextSize(1);
+  display.println("");
+  display.setTextSize(3);
+  display.println(" <--->");
+  display.display();
+}
+
+//Notification that the system is ready on the OLED
+void readyOLED() {
+  display.clearDisplay();
+  display.setTextSize(3);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  display.println("Ready.");
+  display.display();
+  delay(1000);
+  display.clearDisplay();
+  display.display();
+}
+
+//Test OLED functionality at boot
+void bootOLED(void) {
+  display.clearDisplay();
+  display.display();
+  for (int16_t i=0; i<min(display.width(),display.height())/2; i+=5) {
+    display.drawTriangle(display.width()/2, display.height()/2-i,
+                     display.width()/2-i, display.height()/2+i,
+                     display.width()/2+i, display.height()/2+i, WHITE);
+    display.display();
+  }
+  uint8_t color = WHITE;
+  for (int16_t i=min(display.width(),display.height())/2; i>0; i-=5) {
+    display.fillTriangle(display.width()/2, display.height()/2-i,
+                     display.width()/2-i, display.height()/2+i,
+                     display.width()/2+i, display.height()/2+i, WHITE);
+    if (color == WHITE) color = BLACK;
+    else color = WHITE;
+    display.display();
   }
 }
